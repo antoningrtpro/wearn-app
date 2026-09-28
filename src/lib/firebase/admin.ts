@@ -32,8 +32,16 @@ function getAdminApp(): App {
   const privateKey = process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, "\n");
 
   if (!projectId || !clientEmail || !privateKey) {
+    const missing = [
+      !projectId && "FIREBASE_PROJECT_ID",
+      !clientEmail && "FIREBASE_CLIENT_EMAIL",
+      !privateKey && "FIREBASE_PRIVATE_KEY",
+    ].filter(Boolean);
+    throw new Error(`Missing Firebase Admin credentials — env var(s) not set or empty: ${missing.join(", ")}.`);
+  }
+  if (!privateKey.includes("BEGIN PRIVATE KEY")) {
     throw new Error(
-      "Missing Firebase Admin credentials. Set FIREBASE_PROJECT_ID, FIREBASE_CLIENT_EMAIL, and FIREBASE_PRIVATE_KEY."
+      "FIREBASE_PRIVATE_KEY is set but doesn't look like a PEM key (no 'BEGIN PRIVATE KEY' marker) — it was likely truncated or mis-pasted."
     );
   }
 
