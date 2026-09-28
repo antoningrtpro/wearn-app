@@ -50,7 +50,9 @@ export default function LoginPage() {
                 </AdminButton>
               </Link>
               <a
-                href="mailto:contact@wearn.fr"
+                href="https://www.wearn.fr/contact"
+                target="_blank"
+                rel="noopener noreferrer"
                 className="inline-flex h-10 w-full items-center justify-center gap-2 whitespace-nowrap rounded-buttons border border-hairline bg-transparent px-4 text-body font-medium text-ink transition-colors hover:bg-ink/5"
               >
                 Vous êtes une marque ? Contactez-nous
