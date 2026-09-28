@@ -1,26 +1,171 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #f5f5f5;
+  --foreground: #0a0a0a;
+  --page-max-width: 1280px;
 }
 
 @theme inline {
+  /* Colors */
+  --color-canvas: #f5f5f5;
+  --color-paper: #ffffff;
+  --color-surface-alt: #fafafa;
+  --color-ink: #0a0a0a;
+  --color-ink-soft: #171717;
+  --color-mid-gray: #737373;
+  --color-hairline: #e5e5e5;
+  --color-ember: #e7000b;
+
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  /* Font family */
+  --font-sans: var(--font-geist-sans), "Geist", ui-sans-serif, system-ui, -apple-system,
+    BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+
+  /* Type scale (size / line-height / letter-spacing) */
+  --text-caption: 12px;
+  --text-caption--line-height: 1.33;
+  --text-caption--letter-spacing: 0.6px;
+
+  --text-body: 14px;
+  --text-body--line-height: 1.43;
+
+  --text-body-lg: 16px;
+  --text-body-lg--line-height: 1.5;
+
+  --text-subheading: 18px;
+  --text-subheading--line-height: 1.56;
+
+  --text-heading-sm: 24px;
+  --text-heading-sm--line-height: 1.33;
+  --text-heading-sm--letter-spacing: -0.6px;
+
+  --text-heading: 30px;
+  --text-heading--line-height: 1.2;
+  --text-heading--letter-spacing: -0.75px;
+
+  --text-heading-lg: 36px;
+  --text-heading-lg--line-height: 1.11;
+  --text-heading-lg--letter-spacing: -0.9px;
+
+  --text-display: 48px;
+  --text-display--line-height: 1.1;
+  --text-display--letter-spacing: -2.4px;
+
+  /* Border radius */
+  --radius-small: 6px;
+  --radius-nested: 10px;
+  --radius-badges: 18px;
+  --radius-inputs: 18px;
+  --radius-buttons: 18px;
+  --radius-cards: 24px;
+
+  /* Shadows */
+  --shadow-subtle: 0 0 0 1px rgba(23, 23, 23, 0.05), 0 1px 3px rgba(0, 0, 0, 0.1),
+    0 1px 2px -1px rgba(0, 0, 0, 0.1);
+
+  /* Admin dashboard palette — distinct from the monochrome brand/coureur
+   * system above, scoped to the admin section only. Reference: a SaaS
+   * analytics dashboard (cool light-gray surfaces, indigo/violet CTA, soft
+   * pill trend badges, rounded cards with shadow rather than hairline
+   * borders). */
+  --color-admin-canvas: #f2f3f8;
+  --color-admin-accent: #5b4fe5;
+  --color-admin-accent-hover: #4a3fd1;
+  --color-admin-accent-soft: #eeecfd;
+  --color-admin-positive: #16a34a;
+  --color-admin-positive-soft: #dcfce7;
+  --color-admin-negative: #dc2626;
+  --color-admin-negative-soft: #fee2e2;
+  --color-admin-chart-dark: #5b4fe5;
+  --color-admin-chart-light: #d6d2fb;
+  --color-admin-status-new: #22d3ee;
+  --color-admin-status-quoted: #6366f1;
+  --color-admin-status-validated: #a78bfa;
+  --color-admin-status-progress: #5eead4;
+  --color-admin-status-done: #16a34a;
+  --color-admin-status-cancelled: #737373;
+  --color-admin-status-draft: #5b4fe5;
+
+  /* Admin cards read rounder + shadow-driven (vs. the flatter hairline-bordered
+   * cards used elsewhere) — kept as its own token so the two languages can
+   * evolve independently. */
+  --radius-admin-card: 20px;
+  --shadow-admin-card: 0 1px 2px rgba(16, 24, 40, 0.04), 0 1px 3px rgba(16, 24, 40, 0.06);
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--color-canvas);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+}
+
+/* Modal / side panel entrance animations — kept as plain CSS keyframes
+ * (rather than a JS transition library) so they just play on mount, no
+ * state wiring needed. */
+@keyframes modal-backdrop-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes modal-card-in {
+  from {
+    opacity: 0;
+    transform: scale(0.96) translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+@keyframes panel-backdrop-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes panel-slide-in {
+  from {
+    opacity: 0;
+    transform: translateX(24px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.animate-modal-backdrop {
+  animation: modal-backdrop-in 180ms ease-out;
+}
+
+.animate-modal-card {
+  animation: modal-card-in 220ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.animate-panel-backdrop {
+  animation: panel-backdrop-in 200ms ease-out;
+}
+
+.animate-panel-slide {
+  animation: panel-slide-in 260ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-modal-backdrop,
+  .animate-modal-card,
+  .animate-panel-backdrop,
+  .animate-panel-slide {
+    animation: none;
+  }
 }

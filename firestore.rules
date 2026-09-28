@@ -1,0 +1,237 @@
+rules_version = '2';
+
+// ---------------------------------------------------------------------------
+// Wearn — Firestore security rules
+//
+// Design principles:
+// 1. Role is read from Firebase Auth custom claims (request.auth.token.role),
+//    never from a Firestore document field — custom claims cannot be forged
+//    client-side, unlike a document field an attacker could write to.
+// 2. `platformConfig` (defaultCommissionRate) is admin-only for both read and
+//    write, full stop. No rule below ever grants brand or runner access to it.
+// 3. `campaigns` and `campaignSegments` (which hold `unitPriceBrand`, the
+//    brand-facing price) are NEVER readable directly by a client — not even
+//    the runner. The brand validation page (public, tokenized) and the
+//    runner's "My proposals" view are both served by server API routes using
+//    the Admin SDK, which return only the curated, safe fields
+//    (runnerPayoutAmount, placement, event info) and never unitPriceBrand,
+//    defaultCommissionRate, or commissionRateOverride. This also means the
+//    commission calculation itself happens server-side (Cloud Function),
+//    never in a client-callable rule.
+//    `commissionRateOverride` (a per-campaign margin override set by admin)
+//    lives on the `campaigns` document itself, so it inherits the exact same
+//    admin-only read/write protection as everything else in that document —
+//    it is, if anything, MORE sensitive than the platform default, since it
+//    reveals a negotiated margin for one specific client.
+// 4. `runners/{runnerId}` documents are keyed by the Firebase Auth UID
+//    (runnerId == authUid), so ownership checks are a direct comparison
+//    with no extra lookups.
+// 5. `assignments` are readable by the owning runner (their own proposals),
+//    but `runnerPayoutAmount` is pre-computed server-side and stored on the
+//    assignment — the runner can read it but can never set or alter it, and
+//    has no path to derive it from unitPriceBrand/commissionRate since those
+//    live in collections the runner cannot read at all.
+// ---------------------------------------------------------------------------
+
+function isSignedIn() {
+  return request.auth != null;
+}
+
+function role() {
+  return request.auth.token.role;
+}
+
+function isAdmin() {
+  return isSignedIn() && role() == 'admin';
+}
+
+function isRunner() {
+  return isSignedIn() && role() == 'runner';
+}
+
+function isOwnRunnerDoc(runnerId) {
+  return isRunner() && request.auth.uid == runnerId;
+}
+
+function unchanged(field) {
+  return request.resource.data[field] == resource.data[field];
+}
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // -----------------------------------------------------------------
+    // platformConfig/{configId} — commission rate. Admin only, no exceptions.
+    // -----------------------------------------------------------------
+    match /platformConfig/{configId} {
+      allow read, write: if isAdmin();
+    }
+
+    // -----------------------------------------------------------------
+    // admins/{authUid} — display profile only (firstName/lastName); email
+    // and password stay in Firebase Auth. Any admin can read/write, same
+    // posture as platformConfig.
+    // -----------------------------------------------------------------
+    match /admins/{adminId} {
+      allow read, write: if isAdmin();
+    }
+
+    // -----------------------------------------------------------------
+    // runners/{runnerId} — document id == Firebase Auth uid.
+    // -----------------------------------------------------------------
+    match /runners/{runnerId} {
+      allow read: if isAdmin() || isOwnRunnerDoc(runnerId);
+
+      // Creation happens server-side (Admin SDK) at signup, alongside the
+      // Firebase Auth account and custom claim, so it is atomic and
+      // validated — never allowed directly from an unauthenticated client.
+      allow create: if isAdmin();
+
+      allow update: if isAdmin() || (
+        isOwnRunnerDoc(runnerId) &&
+        unchanged('authUid') &&
+        unchanged('createdAt')
+      );
+
+      allow delete: if isAdmin();
+    }
+
+    // -----------------------------------------------------------------
+    // brands/{brandId} — the brand itself has no auth account; its team
+    // members do (see collaborators/{uid} below). All brand/campaign data
+    // for the /marque space is server-rendered via the Admin SDK (session
+    // cookie checked against collaborator.brandId), same posture as the
+    // admin dashboard — so this stays admin-only rather than opening
+    // client-side rules for the brand role.
+    // -----------------------------------------------------------------
+    match /brands/{brandId} {
+      allow read, write: if isAdmin();
+    }
+
+    // -----------------------------------------------------------------
+    // collaborators/{authUid} — one document per brand team member,
+    // mirrors the runners/{runnerId} ownership pattern. Created only by an
+    // admin (see /admin/marques); self-read lets a signed-in collaborator's
+    // own client code look up their profile without a server round trip.
+    // -----------------------------------------------------------------
+    match /collaborators/{collaboratorId} {
+      allow read: if isAdmin() || (isSignedIn() && request.auth.uid == collaboratorId);
+      allow write: if isAdmin();
+    }
+
+    // -----------------------------------------------------------------
+    // events/{eventId} — public read (needed by the anonymous /demande
+    // form to let a brand pick an event). No pricing or PII here.
+    // -----------------------------------------------------------------
+    match /events/{eventId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // events/{eventId}/races/{raceId} — optional sub-races within an event
+    // (e.g. "10 km", "Semi-marathon"). Same posture as the parent: public
+    // read (needed by /demande and /coureur), admin-only write.
+    match /events/{eventId}/races/{raceId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // -----------------------------------------------------------------
+    // campaigns/{campaignId} — the public multi-step brand form writes
+    // through /api/campaigns (Admin SDK) rather than directly, so we can
+    // validate/rate-limit anonymous submissions server-side. The tokenized
+    // brand validation page also reads through a server route so it can
+    // return a curated payload that never includes unitPriceBrand.
+    //
+    // This document also carries `commissionRateOverride` (set only from the
+    // admin campaign detail view) — admin-only read/write here covers it too.
+    // -----------------------------------------------------------------
+    match /campaigns/{campaignId} {
+      allow read, write: if isAdmin();
+    }
+
+    // campaignSegments is a subcollection of campaigns. unitPriceBrand lives
+    // here — admin-only client access, always, matched collection-group
+    // style so this covers /campaigns/{id}/campaignSegments/{id} regardless
+    // of nesting depth.
+    match /{path=**}/campaignSegments/{segmentId} {
+      allow read, write: if isAdmin();
+    }
+
+    // -----------------------------------------------------------------
+    // assignments/{assignmentId}
+    // -----------------------------------------------------------------
+    match /assignments/{assignmentId} {
+      allow read: if isAdmin() ||
+        (isRunner() && resource.data.runnerId == request.auth.uid);
+
+      // All creation (proposing a runner) and brand-side transitions
+      // (validated_by_brand / refused_by_brand) are admin/server-only —
+      // the brand has no auth and acts only through the tokenized API route.
+      allow create: if isAdmin();
+
+      // The runner may perform exactly the transitions they own, and may
+      // only touch the field(s) that transition requires. They can never
+      // set runnerPayoutAmount, proofPhotoUrl outside proof_submitted, or
+      // jump to a brand/admin-only status.
+      allow update: if isAdmin() || (
+        isRunner() &&
+        resource.data.runnerId == request.auth.uid &&
+        (
+          // Accept or decline a brand-validated proposal
+          (
+            resource.data.status == 'validated_by_brand' &&
+            request.resource.data.status in ['validated_by_runner', 'declined_by_runner'] &&
+            request.resource.data.diff(resource.data).affectedKeys()
+              .hasOnly(['status', 'runnerValidatedAt']) &&
+            unchanged('runnerPayoutAmount')
+          ) ||
+          // Confirm sticker receipt
+          (
+            resource.data.status == 'validated_by_runner' &&
+            request.resource.data.status == 'sticker_confirmed' &&
+            request.resource.data.diff(resource.data).affectedKeys()
+              .hasOnly(['status', 'stickerConfirmedAt']) &&
+            unchanged('runnerPayoutAmount')
+          ) ||
+          // Submit proof photo
+          (
+            resource.data.status == 'sticker_confirmed' &&
+            request.resource.data.status == 'proof_submitted' &&
+            request.resource.data.diff(resource.data).affectedKeys()
+              .hasOnly(['status', 'proofPhotoUrl', 'proofSubmittedAt']) &&
+            unchanged('runnerPayoutAmount')
+          ) ||
+          // Withdraw after already validating/confirming (runner un-checks
+          // "je participe" on the event after accepting) — allowed up to
+          // sticker confirmation, not once proof work has actually started.
+          (
+            resource.data.status in ['validated_by_runner', 'sticker_confirmed'] &&
+            request.resource.data.status == 'declined_by_runner' &&
+            request.resource.data.diff(resource.data).affectedKeys()
+              .hasOnly(['status', 'withdrawnAt']) &&
+            unchanged('runnerPayoutAmount')
+          )
+        )
+      );
+
+      allow delete: if isAdmin();
+    }
+
+    // -----------------------------------------------------------------
+    // adminNotifications/{notificationId} — lightweight alerts surfaced on
+    // the admin dashboard (e.g. a runner withdrawing from a confirmed
+    // campaign). Any signed-in runner can create one about themselves;
+    // only admin can read/manage the list.
+    // -----------------------------------------------------------------
+    match /adminNotifications/{notificationId} {
+      allow read, update, delete: if isAdmin();
+      allow create: if isAdmin() || isRunner();
+    }
+
+    // Default deny — anything not explicitly matched above is inaccessible.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

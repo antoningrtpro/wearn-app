@@ -1,0 +1,66 @@
+rules_version = '2';
+
+// ---------------------------------------------------------------------------
+// Wearn — Storage rules
+//
+// - Runner profile photos must be visible on the anonymous, tokenized brand
+//   validation page, so they are publicly readable (no PII beyond a running
+//   photo is stored there). Only the owning runner or an admin may write.
+// - Proof photos are only ever needed by admin (to approve payout) and by
+//   the runner who submitted them — never by the brand in V1 — so they stay
+//   private, gated by a cross-service Firestore lookup confirming ownership.
+// - Quote PDFs are admin-generated and admin/brand-link only; served through
+//   a server route rather than a public Storage read.
+// ---------------------------------------------------------------------------
+
+function isSignedIn() {
+  return request.auth != null;
+}
+
+function role() {
+  return request.auth.token.role;
+}
+
+function isAdmin() {
+  return isSignedIn() && role() == 'admin';
+}
+
+function isRunner() {
+  return isSignedIn() && role() == 'runner';
+}
+
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    // profilePhotos/{runnerId}/{fileName} — runnerId == Firebase Auth uid
+    match /profilePhotos/{runnerId}/{fileName} {
+      allow read: if true;
+      allow write: if isAdmin() || (isRunner() && request.auth.uid == runnerId);
+    }
+
+    // proofPhotos/{assignmentId}/{fileName} — only the assignment's own
+    // runner (verified via Firestore) or an admin may read/write.
+    match /proofPhotos/{assignmentId}/{fileName} {
+      allow read: if isAdmin() || (
+        isRunner() &&
+        firestore.get(/databases/(default)/documents/assignments/$(assignmentId)).data.runnerId == request.auth.uid
+      );
+      allow write: if isAdmin() || (
+        isRunner() &&
+        firestore.get(/databases/(default)/documents/assignments/$(assignmentId)).data.runnerId == request.auth.uid &&
+        firestore.get(/databases/(default)/documents/assignments/$(assignmentId)).data.status == 'sticker_confirmed'
+      );
+    }
+
+    // quotePdfs/{campaignId}/{fileName} — admin only via Storage; the brand
+    // reaches the PDF through a server route that streams it after
+    // validating the campaign's tokenized link.
+    match /quotePdfs/{campaignId}/{fileName} {
+      allow read, write: if isAdmin();
+    }
+
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}
