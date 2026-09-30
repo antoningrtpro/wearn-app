@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { AlertCircle } from "lucide-react";
 import { sendPasswordResetEmail, signInWithEmailAndPassword } from "firebase/auth";
 import { auth } from "@/lib/firebase/client";
 import { AdminButton as Button } from "@/components/admin/admin-button";
@@ -142,7 +143,15 @@ export function LoginForm() {
               />
             </label>
 
-            {error ? <p className="-my-2 text-body text-ember">{error}</p> : null}
+            {error ? (
+          <div
+            role="alert"
+            className="-my-1 flex items-start gap-2 rounded-inputs bg-warning-soft px-3 py-2.5 text-body text-warning"
+          >
+            <AlertCircle size={16} strokeWidth={2} className="mt-0.5 shrink-0" />
+            <span>{error}</span>
+          </div>
+        ) : null}
 
             <Button type="submit" disabled={loading}>
               {loading ? "Envoi..." : "Envoyer le lien de réinitialisation"}
@@ -195,7 +204,15 @@ export function LoginForm() {
           </label>
         </div>
 
-        {error ? <p className="-my-2 text-body text-ember">{error}</p> : null}
+        {error ? (
+          <div
+            role="alert"
+            className="-my-1 flex items-start gap-2 rounded-inputs bg-warning-soft px-3 py-2.5 text-body text-warning"
+          >
+            <AlertCircle size={16} strokeWidth={2} className="mt-0.5 shrink-0" />
+            <span>{error}</span>
+          </div>
+        ) : null}
 
         <div className="flex flex-col gap-2">
           <Button type="submit" disabled={loading}>
@@ -207,7 +224,7 @@ export function LoginForm() {
               setMode("reset");
               setError(null);
             }}
-            className="self-start text-body text-mid-gray underline"
+            className="self-start text-caption text-mid-gray underline"
           >
             Mot de passe oublié ?
           </button>
