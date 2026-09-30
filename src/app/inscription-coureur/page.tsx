@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { getSession } from "@/lib/firebase/session";
 import { adminDb } from "@/lib/firebase/admin";
 import { SignupStep1Form } from "@/components/runner-form/signup-step1-form";
+import Logo from "@/components/shared/logo";
 
 export default async function InscriptionCoureurPage() {
   const session = await getSession();
@@ -16,10 +17,7 @@ export default async function InscriptionCoureurPage() {
     <main className="min-h-svh bg-admin-canvas px-4 py-12 sm:py-16">
       <div className="mx-auto max-w-3xl">
         <Link href="/" className="flex items-center gap-2">
-          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-small bg-admin-accent text-body-lg font-bold text-white">
-            W
-          </span>
-          <span className="text-body-lg font-bold tracking-heading-sm text-ink">Wearn</span>
+          <Logo className="text-body-lg font-bold tracking-heading-sm text-ink" />
         </Link>
 
         <div className="mb-10 mt-8">

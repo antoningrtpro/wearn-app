@@ -6,6 +6,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { ChevronLeft, ChevronRight, LogOut, type LucideIcon } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { auth } from "@/lib/firebase/client";
+import Logo, { LogoMark } from "@/components/shared/logo";
 
 export interface SidebarNavItem {
   href: string;
@@ -60,12 +61,11 @@ export function AppSidebar({ navItems, accountLabel, accountHref }: AppSidebarPr
     >
       <div>
         <div className={cn("flex items-center gap-2 px-2", collapsed && "justify-center")}>
-          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-small bg-admin-accent text-body-lg font-bold text-white">
-            W
-          </span>
-          {!collapsed ? (
-            <span className="text-body-lg font-bold tracking-heading-sm text-ink">Wearn</span>
-          ) : null}
+          {collapsed ? (
+            <LogoMark className="text-heading-sm font-bold" />
+          ) : (
+            <Logo className="text-body-lg font-bold tracking-heading-sm text-ink" />
+          )}
         </div>
 
         <button

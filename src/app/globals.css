@@ -4,18 +4,46 @@
   --background: #f5f5f5;
   --foreground: #0a0a0a;
   --page-max-width: 1280px;
+
+  /* Brand palette */
+  --bg: #fbf9f6;
+  --surface: #ffffff;
+  --surface-muted: #f3f0eb;
+  --ink: #141414;
+  --ink-2: #5c5a57;
+  --ink-3: #9a9690;
+  --line: #e7e2da;
+  --success: #1f9d55;
+  --success-soft: #e6f4ea;
+  --warning: #c2410c;
+  --warning-soft: #fdece3;
+  --accent: #ff5a36;
+  --accent-dark: #e0451f;
+  --accent-soft: #ffe4d9;
 }
 
 @theme inline {
-  /* Colors */
-  --color-canvas: #f5f5f5;
-  --color-paper: #ffffff;
-  --color-surface-alt: #fafafa;
-  --color-ink: #0a0a0a;
-  --color-ink-soft: #171717;
-  --color-mid-gray: #737373;
-  --color-hairline: #e5e5e5;
-  --color-ember: #e7000b;
+  /* Colors — mapped onto the brand palette above; token names kept as-is
+   * so existing bg-canvas / text-ink / border-hairline usage keeps working. */
+  --color-canvas: var(--bg);
+  --color-paper: var(--surface);
+  --color-surface-alt: var(--surface);
+  --color-ink: var(--ink);
+  --color-ink-soft: #0a0a0a;
+  --color-mid-gray: var(--ink-2);
+  --color-hairline: var(--line);
+  --color-ember: var(--accent);
+
+  /* New tokens from the brand palette, available alongside the above */
+  --color-surface-muted: var(--surface-muted);
+  --color-ink-2: var(--ink-2);
+  --color-ink-3: var(--ink-3);
+  --color-success: var(--success);
+  --color-success-soft: var(--success-soft);
+  --color-warning: var(--warning);
+  --color-warning-soft: var(--warning-soft);
+  --color-accent-dark: var(--accent-dark);
+  --color-accent-soft: var(--accent-soft);
 
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -66,21 +94,21 @@
   --shadow-subtle: 0 0 0 1px rgba(23, 23, 23, 0.05), 0 1px 3px rgba(0, 0, 0, 0.1),
     0 1px 2px -1px rgba(0, 0, 0, 0.1);
 
-  /* Admin dashboard palette — distinct from the monochrome brand/coureur
-   * system above, scoped to the admin section only. Reference: a SaaS
-   * analytics dashboard (cool light-gray surfaces, indigo/violet CTA, soft
-   * pill trend badges, rounded cards with shadow rather than hairline
-   * borders). */
+  /* Admin dashboard palette — cool light-gray surfaces and pill trend
+   * badges/shadowed cards stay distinct from the brand/coureur system
+   * above, but the CTA accent and positive/success colors are now the
+   * same brand tokens (orange accent, green success) for a single
+   * identity across the app. */
   --color-admin-canvas: #f2f3f8;
-  --color-admin-accent: #5b4fe5;
-  --color-admin-accent-hover: #4a3fd1;
-  --color-admin-accent-soft: #eeecfd;
-  --color-admin-positive: #16a34a;
-  --color-admin-positive-soft: #dcfce7;
+  --color-admin-accent: var(--accent);
+  --color-admin-accent-hover: var(--accent-dark);
+  --color-admin-accent-soft: var(--accent-soft);
+  --color-admin-positive: var(--success);
+  --color-admin-positive-soft: var(--success-soft);
   --color-admin-negative: #dc2626;
   --color-admin-negative-soft: #fee2e2;
-  --color-admin-chart-dark: #5b4fe5;
-  --color-admin-chart-light: #d6d2fb;
+  --color-admin-chart-dark: var(--accent);
+  --color-admin-chart-light: var(--accent-soft);
   --color-admin-status-new: #22d3ee;
   --color-admin-status-quoted: #6366f1;
   --color-admin-status-validated: #a78bfa;

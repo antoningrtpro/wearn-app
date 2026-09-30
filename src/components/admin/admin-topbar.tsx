@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ADMIN_NAV_ITEMS, isNavItemActive } from "@/components/admin/admin-sidebar";
+import Logo from "@/components/shared/logo";
 
 export function AdminTopbar() {
   const pathname = usePathname();
@@ -17,7 +18,7 @@ export function AdminTopbar() {
     <header className="flex h-16 shrink-0 items-center border-b border-hairline px-8">
       <div className="flex items-center gap-1.5 text-body text-mid-gray">
         <Link href="/admin" className="hover:text-ink hover:underline">
-          Wearn
+          <Logo className="font-medium" />
         </Link>
         <span>/</span>
         {isDeeperPage ? (

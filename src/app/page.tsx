@@ -2,6 +2,7 @@ import Link from "next/link";
 import { LoginForm } from "@/components/auth/login-form";
 import { AdminCard as Card } from "@/components/admin/admin-card";
 import { AdminButton } from "@/components/admin/admin-button";
+import Logo from "@/components/shared/logo";
 
 const HERO_PHOTO_URL = "https://images.pexels.com/photos/10313672/pexels-photo-10313672.jpeg";
 
@@ -17,10 +18,7 @@ export default function LoginPage() {
           <div aria-hidden="true" className="absolute inset-0 bg-gradient-to-t from-ink/70 via-transparent to-ink/30" />
 
           <div className="relative flex items-center gap-2 px-8 py-8">
-            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-small bg-white text-body-lg font-bold text-admin-accent">
-              W
-            </span>
-            <span className="text-body-lg font-bold tracking-heading-sm">Wearn</span>
+            <Logo className="text-body-lg font-bold tracking-heading-sm" />
           </div>
 
           <div className="relative px-8 pb-8">
